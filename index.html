@@ -867,13 +867,16 @@
                         <input 
                             v-model.number="exchangeInput"
                             type="number"
+                            inputmode="decimal"
                             placeholder="輸入金額"
                             class="exchange-input"
                         >
-                        <div class="exchange-result">NT$ {{ (exchangeInput * exchangeRate).toFixed(0) }}</div>
-                        <div style="font-size: 11px; margin-top: 8px; opacity: 0.8;">
-                            匯率: 1 JPY = {{ exchangeRate.toFixed(4) }} TWD
-                        </div>
+                        <div class="exchange-result">
+                        NT$ {{ exchangeInput ? (Number(exchangeInput) * exchangeRate).toFixed(0) : '0' }}
+                              </div>
+                            <div style="font-size: 11px; margin-top: 8px; opacity: 0.8;">
+                          匯率: 1 JPY = {{ exchangeRate.toFixed(4) }} TWD
+                      </div>
                     </div>
                 </div>
 
@@ -1238,7 +1241,7 @@
                     editingItem: null,
                     editingIndex: -1,
                     showCopyToast: false,
-                    exchangeInput: 0,
+                    exchangeInput: '10000',  // ← 用字串形式的預設值
                     exchangeRate: 0.2, // 1 JPY = 0.2 TWD 左右 (請根據當日實際匯率調整)
                     draggedIndex: -1,
 
