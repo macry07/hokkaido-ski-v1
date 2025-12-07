@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>札幌滑雪之旅</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --hokkaido-blue: #3b9fd9;
+            --hokkaido-light: #e8f4f8;
+            --hokkaido-dark: #0f4c6b;
+            --snow-white: #f8fafb;
+        }
+
+        body {
+            background: linear-gradient(180deg, #e8f4f8 0%, #f0f8fb 100%);
+            font-family: 'Noto Sans CJK JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #2c3e50;
+        }
+
+        .banner-container {
+            position: relative;
+            height: 250px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #3b9fd9 0%, #5eb3e6 100%);
+        }
+
+        .banner-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .curved-container {
+            background-color: var(--snow-white);
+            border-radius: 40px 40px 0 0;
+            margin-top: -35px;
+            position: relative;
+            z-index: 10;
+            padding-top: 35px;
+        }
+
+        .tab-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 12px;
+            z-index: 20;
+        }
+
+        .tab-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid var(--hokkaido-blue);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 159, 217, 0.2);
+        }
+
+        .tab-btn:hover {
+            background: var(--hokkaido-blue);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(59, 159, 217, 0.4);
+        }
+
+        .tab-btn.active {
+            background: var(--hokkaido-blue);
+            color: white;
+        }
+
+        /* 日期選單滑動 */
+        .date-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding: 16px;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .date-scroll::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        .date-scroll::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border-radius: 3px;
+        }
+
+        .date-scroll::-webkit-scrollbar-thumb {
+            background: var(--hokkaido-blue);
+            border-radius: 3px;
+        }
+
+        .date-item {
+            min-width: 70px;
+            padding: 12px 16px;
+            border-radius: 20px;
+            background: white;
+            border: 2px solid #e0e0e0;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .date-item:hover {
+            border-color: var(--hokkaido-blue);
+            transform: translateY(-2px);
+        }
+
+        .date-item.active {
+            background: var(--hokkaido-blue);
+            color: white;
+            border-color: var(--hokkaido-blue);
+        }
+
+        .date-week {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .date-day {
+            font-size: 18px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        /* 行程卡片 */
+        .itinerary-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            border-left: 4px solid var(--hokkaido-blue);
+            cursor: grab;
+            transition: all 0.3s ease;
+        }
+
+        .itinerary-card:active {
+            cursor: grabbing;
+            opacity: 0.9;
+        }
+
+        .itinerary-card:hover {
+            box-shadow: 0 4px 16px rgba(59, 159, 217, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .card-icon {
+            font-size: 28px;
+            min-width: 32px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--hokkaido-dark);
+            flex: 1;
+        }
+
+        .card-time {
+            font-size: 14px;
+            color: var(--hokkaido-blue);
+            font-weight: 600;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .card-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+
+        .card-btn:hover {
+            background: var(--hokkaido-blue);
+            color: white;
+        }
+
+        .card-content {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+            margin-top: 8px;
+        }
+
+        .transit-info {
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fb 100%);
+            padding: 10px 12px;
+            border-radius: 12px;
+            margin: 12px 0;
+            font-size: 12px;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 浮動按鈕 */
+        .fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--hokkaido-blue);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 6px 20px rgba(59, 159, 217, 0.3);
+            transition: all 0.3s ease;
+            z-index: 15;
+        }
+
+        .fab:hover {
+            transform: scale(1.15);
+            box-shadow: 0 8px 25px rgba(59, 159, 217, 0.4);
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        /* 模態窗口 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-end;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 表單 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--hokkaido-dark);
+            margin-bottom: 6px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1.5px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--hokkaido-blue);
+            background-color: #f0f8fb;
+            box-shadow: 0 0 0 3px rgba(59, 159, 217, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--hokkaido-blue);
+            color: white;
+            width: 100%;
+            margin-top: 12px;
+        }
+
+        .btn-primary:hover {
+            background: var(--hokkaido-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 159, 217, 0.3);
+        }
+
+        .btn-danger {
+            background: #ff6b6b;
+            color: white;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-danger:hover {
+            background: #ff5252;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #666;
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        /* 天氣資訊 */
+        .weather-card {
+            background: linear-gradient(135deg, var(--hokkaido-blue) 0%, #5eb3e6 100%);
+            color: white;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(59, 159, 217, 0.2);
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+        }
+
+        .weather-icon {
+            font-size: 48px;
+        }
+
+        .weather-temp {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .weather-detail {
+            font-size: 12px;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* 提醒事項 */
+        .reminder-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #856404;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* 航班資訊卡 */
+        .flight-info {
+            background: linear-gradient(135deg, #f0f8fb 0%, #e8f4f8 100%);
+            border-left: 4px solid var(--hokkaido-blue);
+            padding: 14px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .flight-route {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .flight-time {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* 購物卡片 */
+        .shopping-card {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            display: flex;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .shopping-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            background: #f0f0f0;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .shopping-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .shopping-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .shopping-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--hokkaido-dark);
+        }
+
+        .shopping-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* 花費列表 */
+        .expense-row {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--hokkaido-blue);
+        }
+
+        .expense-left {
+            flex: 1;
+        }
+
+        .expense-category {
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .expense-name {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--hokkaido-dark);
+            margin-top: 2px;
+        }
+
+        .expense-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--hokkaido-blue);
+        }
+
+        /* 分帳卡片 */
+        .split-card {
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f8fb 100%);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            border-left: 4px solid var(--hokkaido-blue);
+        }
+
+        .split-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .split-detail {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        /* 資訊分類 */
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--hokkaido-dark);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--hokkaido-blue);
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 14px;
+            color: #2c3e50;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        /* 匯率換算 */
+        .exchange-card {
+            background: linear-gradient(135deg, var(--hokkaido-blue) 0%, #5eb3e6 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .exchange-input {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        .exchange-result {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 768px) {
+            .modal-content {
+                padding: 20px;
+                border-radius: 20px 20px 0 0;
+            }
+
+            .curved-container {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+        }
+
+        /* 長按複製提示 */
+        .copy-toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--hokkaido-blue);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 200;
+            animation: fadeInOut 2s ease;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            10%, 90% { opacity: 1; }
+        }
+
+        /* 地圖容器 */
+        .map-container {
+            width: 100%;
+            height: 300px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .map-link {
+            color: var(--hokkaido-blue);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .map-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 頁首 Banner -->
+        <div class="banner-container">
+            <img src="SKISB.jpg" alt="札幌滑雪之旅" class="banner-image">
+
+            <!-- Tab 按鈕 -->
+            <div class="tab-buttons">
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: currentTab === 'itinerary' }"
+                    @click="currentTab = 'itinerary'"
+                    title="每日行程表"
+                >
+                    📍
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: currentTab === 'info' }"
+                    @click="currentTab = 'info'"
+                    title="資訊"
+                >
+                    ℹ️
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: currentTab === 'shopping' }"
+                    @click="currentTab = 'shopping'"
+                    title="購物清單"
+                >
+                    🛒
+                </button>
+                <button 
+                    class="tab-btn" 
+                    :class="{ active: currentTab === 'expense' }"
+                    @click="currentTab = 'expense'"
+                    title="花費"
+                >
+                    💰
+                </button>
+            </div>
+        </div>
+
+        <!-- 主內容區域 -->
+        <div class="curved-container">
+            <!-- 每日行程表 -->
+            <div v-show="currentTab === 'itinerary'" class="px-4 pb-20">
+                <!-- 日期選單 -->
+                <div class="date-scroll">
+                    <div 
+                        v-for="date in dates" 
+                        :key="date.id"
+                        class="date-item"
+                        :class="{ active: selectedDate === date.id }"
+                        @click="selectedDate = date.id"
+                    >
+                        <div class="date-week">{{ date.week }}</div>
+                        <div class="date-day">{{ date.day }}</div>
+                    </div>
+                </div>
+
+                <!-- 行程分類下拉選單 -->
+                <div class="px-4 mt-4">
+                    <select v-model="selectedCategory" class="form-select">
+                        <option value="">全部分類</option>
+                        <option value="flight">航班</option>
+                        <option value="accommodation">住宿</option>
+                        <option value="transportation">交通</option>
+                        <option value="attraction">景點</option>
+                        <option value="food">美食</option>
+                        <option value="shopping">購物</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+
+                <!-- 天氣資訊 -->
+                <div class="px-4 mt-4" v-if="currentDayWeather">
+                    <div class="weather-card">
+                        <div class="weather-main">
+                            <div class="weather-icon">{{ currentDayWeather.icon }}</div>
+                            <div class="weather-temp">{{ currentDayWeather.temp }}°C</div>
+                        </div>
+                        <div class="weather-detail">
+                            <div>體感溫度: {{ currentDayWeather.feelsLike }}°C</div>
+                            <div>旅行建議: {{ currentDayWeather.suggestion }}</div>
+                            <div>穿衣建議: {{ currentDayWeather.clothingSuggestion }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 行程列表 -->
+                <div class="px-4 mt-4">
+                    <!-- 第一天航班資訊 -->
+                    <div v-if="selectedDate === 'day1'" class="mb-4">
+                        <div v-for="flight in flightInfo.outbound" :key="flight.id" class="flight-info">
+                            <div class="flight-route">
+                                <span>{{ flight.departure }} → {{ flight.arrival }}</span>
+                                <span>{{ flight.flightNumber }}</span>
+                            </div>
+                            <div class="flight-time">
+                                <div>出發: {{ flight.departureTime }} | 抵達: {{ flight.arrivalTime }}</div>
+                                <div>飛行時間: {{ flight.duration }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 行程卡片 -->
+                    <div 
+                        v-for="(item, index) in filteredItinerary"
+                        :key="item.id"
+                        class="itinerary-card"
+                        draggable="true"
+                        @dragstart="dragStart($event, index)"
+                        @dragover.prevent
+                        @drop="dragDrop($event, index)"
+                        @dragend="dragEnd"
+                        @longpress="copyToClipboard(item)"
+                    >
+                        <div class="card-header">
+                            <div class="card-icon">{{ getCategoryIcon(item.category) }}</div>
+                            <div>
+                                <div class="card-title">{{ item.name }}</div>
+                                <div class="card-time">{{ item.time }}</div>
+                            </div>
+                            <div class="card-actions">
+                                <button class="card-btn" @click="editItem(item)">✏️</button>
+                                <button class="card-btn" @click="deleteItem(item.id)">🗑️</button>
+                            </div>
+                        </div>
+
+                        <div class="card-content">
+                            <div v-if="item.hours">⏰ {{ item.hours }}</div>
+                            <div v-if="item.ticket">🎫 門票: {{ item.ticket }}</div>
+                            <div v-if="item.notes">📝 {{ item.notes }}</div>
+                        </div>
+
+                        <!-- 交通時間 -->
+                        <div v-if="index < filteredItinerary.length - 1" class="transit-info">
+                            <span>{{ getTransitIcon(item.transit) }}</span>
+                            <span>到下一個地點: {{ item.transitTime }}</span>
+                        </div>
+
+                        <div class="reminder-box">
+                            ✓ 出門前: 手機 · 錢包 · 日幣 · 護照 · 手套
+                        </div>
+                    </div>
+
+                    <!-- 最後一天航班資訊 -->
+                    <div v-if="selectedDate === 'day6'" class="mt-4">
+                        <div v-for="flight in flightInfo.return" :key="flight.id" class="flight-info">
+                            <div class="flight-route">
+                                <span>{{ flight.departure }} → {{ flight.arrival }}</span>
+                                <span>{{ flight.flightNumber }}</span>
+                            </div>
+                            <div class="flight-time">
+                                <div>出發: {{ flight.departureTime }} | 抵達: {{ flight.arrivalTime }}</div>
+                                <div>飛行時間: {{ flight.duration }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 浮動新增按鈕 -->
+                <button class="fab" @click="openAddModal('itinerary')">+</button>
+            </div>
+
+            <!-- 資訊頁面 -->
+            <div v-show="currentTab === 'info'" class="px-4 py-4 pb-20">
+                <!-- 匯率換算 -->
+                <div class="info-section">
+                    <div class="exchange-card">
+                        <div style="font-size: 12px; margin-bottom: 8px; opacity: 0.9;">日幣 (JPY) 轉台幣 (TWD)</div>
+                        <input 
+                            v-model.number="exchangeInput"
+                            type="number"
+                            placeholder="輸入金額"
+                            class="exchange-input"
+                        >
+                        <div class="exchange-result">NT$ {{ (exchangeInput * exchangeRate).toFixed(0) }}</div>
+                        <div style="font-size: 11px; margin-top: 8px; opacity: 0.8;">
+                            匯率: 1 JPY = {{ exchangeRate.toFixed(4) }} TWD
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 航班資訊 -->
+                <div class="info-section">
+                    <h3 class="info-title">✈️ 航班資訊</h3>
+
+                    <!-- 去程 -->
+                    <div style="margin-bottom: 16px;">
+                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--hokkaido-dark);">去程</div>
+                        <div v-for="flight in flightInfo.outbound" :key="flight.id" class="info-card">
+                            <div class="info-label">出發地</div>
+                            <div class="info-value">{{ flight.departure }} ({{ flight.departureShort }})</div>
+                            <div class="info-label" style="margin-top: 8px;">目的地</div>
+                            <div class="info-value">{{ flight.arrival }} ({{ flight.arrivalShort }})</div>
+                            <div class="info-label" style="margin-top: 8px;">起飛時間</div>
+                            <div class="info-value">{{ flight.departureTime }}</div>
+                            <div class="info-label" style="margin-top: 8px;">抵達時間</div>
+                            <div class="info-value">{{ flight.arrivalTime }}</div>
+                            <div class="info-label" style="margin-top: 8px;">飛行時間</div>
+                            <div class="info-value">{{ flight.duration }}</div>
+                            <div class="info-label" style="margin-top: 8px;">航班編號</div>
+                            <div class="info-value">{{ flight.flightNumber }}</div>
+                        </div>
+                    </div>
+
+                    <!-- 回程 -->
+                    <div>
+                        <div style="font-weight: 600; margin-bottom: 8px; color: var(--hokkaido-dark);">回程</div>
+                        <div v-for="flight in flightInfo.return" :key="flight.id" class="info-card">
+                            <div class="info-label">出發地</div>
+                            <div class="info-value">{{ flight.departure }} ({{ flight.departureShort }})</div>
+                            <div class="info-label" style="margin-top: 8px;">目的地</div>
+                            <div class="info-value">{{ flight.arrival }} ({{ flight.arrivalShort }})</div>
+                            <div class="info-label" style="margin-top: 8px;">起飛時間</div>
+                            <div class="info-value">{{ flight.departureTime }}</div>
+                            <div class="info-label" style="margin-top: 8px;">抵達時間</div>
+                            <div class="info-value">{{ flight.arrivalTime }}</div>
+                            <div class="info-label" style="margin-top: 8px;">飛行時間</div>
+                            <div class="info-value">{{ flight.duration }}</div>
+                            <div class="info-label" style="margin-top: 8px;">航班編號</div>
+                            <div class="info-value">{{ flight.flightNumber }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 住宿資訊 -->
+                <div class="info-section">
+                    <h3 class="info-title">🏨 住宿資訊</h3>
+                    <div class="info-card">
+                        <div class="info-label">住宿名稱</div>
+                        <div class="info-value">札幌豐平區 Airbnb 包棟</div>
+                        <div class="info-label" style="margin-top: 8px;">位置</div>
+                        <div class="info-value">學園前站 (Gakuen-mae Station)</div>
+                        <div class="info-label" style="margin-top: 8px;">Google Maps</div>
+                        <a href="https://maps.app.goo.gl/FTicW2vcopkqsVCr7?g_st=ipc" target="_blank" class="map-link">
+                            查看地圖 →
+                        </a>
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; font-size: 12px; color: #999;">
+                            最近車站: 學園前站 (Gakuen-mae Station)<br>
+                            <a href="https://maps.app.goo.gl/6zt4FdE7kAwhh6XY9?g_st=ipc" target="_blank" class="map-link">
+                                地鐵站地圖 →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 租車資訊 -->
+                <div class="info-section">
+                    <h3 class="info-title">🚕 包車接送資訊</h3>
+                    <div class="info-card">
+                        <div style="margin-bottom: 10px;">
+                            <div class="info-label">12/17 機場至住宿</div>
+                            <div class="info-value">¥70,000</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <div class="info-label">12/18 住宿至滑雪場往返</div>
+                            <div class="info-value">¥40,000</div>
+                        </div>
+                        <div style="margin-bottom: 10px;">
+                            <div class="info-label">12/21 一日包車行程</div>
+                            <div class="info-value">¥60,000 (各組分開結帳)</div>
+                        </div>
+                        <div>
+                            <div class="info-label">12/22 住宿至機場</div>
+                            <div class="info-value">¥40,000</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 緊急醫療 -->
+                <div class="info-section">
+                    <h3 class="info-title">🚨 緊急醫療</h3>
+                    <div class="info-card">
+                        <div style="margin-bottom: 12px;">
+                            <div class="info-label">日本警察</div>
+                            <div class="info-value" style="font-weight: 700;">110</div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div class="info-label">日本救護車</div>
+                            <div class="info-value" style="font-weight: 700;">119</div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div class="info-label">旅日海外緊急救助</div>
+                            <div class="info-value">請撥打當地警察 110 或救護車 119</div>
+                        </div>
+                        <div>
+                            <div class="info-label">台灣駐日本大使館 (札幌分處)</div>
+                            <div class="info-value">+81-11-641-1930</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 購物清單 -->
+            <div v-show="currentTab === 'shopping'" class="px-4 py-4 pb-20">
+                <div v-if="shoppingList.length === 0" style="text-align: center; padding: 40px 0; color: #999;">
+                    <div style="font-size: 48px; margin-bottom: 12px;">🛒</div>
+                    <div>還沒有購物清單項目</div>
+                </div>
+
+                <div v-for="item in shoppingList" :key="item.id" class="shopping-card">
+                    <div class="shopping-image">
+                        <img v-if="item.image" :src="item.image" :alt="item.name">
+                        <div v-else style="display: flex; align-items: center; justify-content: center; background: #f0f0f0; width: 100%; height: 100%;">
+                            📸
+                        </div>
+                    </div>
+                    <div class="shopping-info">
+                        <div class="shopping-name">{{ item.name }}</div>
+                        <div class="shopping-actions">
+                            <button class="card-btn" @click="editItem(item)">✏️</button>
+                            <button class="card-btn" @click="deleteItem(item.id)">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="fab" @click="openAddModal('shopping')">+</button>
+            </div>
+
+            <!-- 花費管理 -->
+            <div v-show="currentTab === 'expense'" class="px-4 py-4 pb-20">
+                <!-- 總花費 -->
+                <div style="background: linear-gradient(135deg, var(--hokkaido-blue) 0%, #5eb3e6 100%); color: white; padding: 20px; border-radius: 16px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(59, 159, 217, 0.2);">
+                    <div style="font-size: 12px; opacity: 0.9; margin-bottom: 6px;">總花費</div>
+                    <div style="font-size: 32px; font-weight: 700;">¥ {{ totalExpense.toLocaleString() }}</div>
+                </div>
+
+                <!-- 花費列表 -->
+                <div style="margin-bottom: 16px;">
+                    <h3 class="info-title">💸 支出明細</h3>
+                    <div v-if="expenses.length === 0" style="text-align: center; padding: 30px; color: #999;">
+                        還沒有花費記錄
+                    </div>
+                    <div v-for="expense in expenses" :key="expense.id" class="expense-row">
+                        <div class="expense-left">
+                            <div class="expense-category">{{ expense.category }}</div>
+                            <div class="expense-name">{{ expense.name }}</div>
+                            <div style="font-size: 12px; color: #999; margin-top: 4px;">{{ expense.date }}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="expense-amount">¥ {{ expense.amount.toLocaleString() }}</div>
+                            <div style="font-size: 11px; color: #999; margin-top: 4px;">{{ expense.paymentMethod }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分帳系統 -->
+                <div>
+                    <h3 class="info-title">👥 分帳紀錄</h3>
+                    <div v-for="split in splits" :key="split.id" class="split-card">
+                        <div class="split-header">
+                            <span>{{ split.date }}</span>
+                            <span>{{ split.people }}人平分</span>
+                        </div>
+                        <div class="split-detail">
+                            <div>📝 {{ split.description }}</div>
+                            <div style="margin-top: 6px;">💵 {{ split.currency }}: {{ split.amount.toLocaleString() }}</div>
+                            <div style="margin-top: 6px;">👤 每人: {{ (split.amount / split.people).toLocaleString() }} {{ split.currency }}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="fab" @click="openAddModal('expense')">+</button>
+            </div>
+        </div>
+
+        <!-- 編輯/新增模態窗口 -->
+        <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+            <div class="modal-content">
+                <button class="modal-close" @click="closeModal">✕</button>
+
+                <!-- 新增/編輯行程 -->
+                <div v-if="modalType === 'itinerary'">
+                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--hokkaido-dark);">
+                        {{ editingItem ? '編輯行程' : '新增行程' }}
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label">分類</label>
+                        <select v-model="formData.category" class="form-select">
+                            <option value="attraction">景點</option>
+                            <option value="accommodation">住宿</option>
+                            <option value="food">美食</option>
+                            <option value="shopping">購物</option>
+                            <option value="flight">航班</option>
+                            <option value="transportation">交通</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">行程名稱</label>
+                        <input v-model="formData.name" type="text" class="form-input" placeholder="輸入行程名稱">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">時間</label>
+                        <input v-model="formData.time" type="time" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">營業時間 (選填)</label>
+                        <input v-model="formData.hours" type="text" class="form-input" placeholder="如: 10:00-18:00">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">門票 (選填)</label>
+                        <input v-model="formData.ticket" type="text" class="form-input" placeholder="如: ¥1,000">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">特色 & 備註</label>
+                        <textarea v-model="formData.notes" class="form-textarea" placeholder="輸入備註"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">交通方式</label>
+                        <select v-model="formData.transit" class="form-select">
+                            <option value="walk">步行</option>
+                            <option value="car">開車</option>
+                            <option value="transit">大眾運輸</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">交通時間</label>
+                        <input v-model="formData.transitTime" type="text" class="form-input" placeholder="如: 15分鐘">
+                    </div>
+
+                    <button class="btn btn-primary" @click="saveItem">保存</button>
+
+                    <div v-if="editingItem">
+                        <button class="btn btn-danger" @click="confirmDelete">確認刪除</button>
+                        <button class="btn btn-secondary" @click="closeModal">取消</button>
+                    </div>
+                </div>
+
+                <!-- 新增/編輯購物項目 -->
+                <div v-if="modalType === 'shopping'">
+                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--hokkaido-dark);">
+                        {{ editingItem ? '編輯購物項目' : '新增購物項目' }}
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label">商品名稱</label>
+                        <input v-model="formData.name" type="text" class="form-input" placeholder="輸入商品名稱">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">上傳圖片</label>
+                        <input 
+                            type="file" 
+                            accept="image/*"
+                            @change="handleImageUpload"
+                            class="form-input"
+                            style="padding: 0;"
+                        >
+                    </div>
+
+                    <button class="btn btn-primary" @click="saveItem">保存</button>
+
+                    <div v-if="editingItem">
+                        <button class="btn btn-danger" @click="confirmDelete">確認刪除</button>
+                        <button class="btn btn-secondary" @click="closeModal">取消</button>
+                    </div>
+                </div>
+
+                <!-- 新增/編輯花費 -->
+                <div v-if="modalType === 'expense'">
+                    <h2 style="font-size: 20px; font-weight: 700; margin-bottom: 20px; color: var(--hokkaido-dark);">
+                        {{ editingItem ? '編輯花費' : '新增花費' }}
+                    </h2>
+
+                    <div class="form-group">
+                        <label class="form-label">類別</label>
+                        <select v-model="formData.category" class="form-select">
+                            <option value="transportation">交通</option>
+                            <option value="food">飲食</option>
+                            <option value="accommodation">住宿</option>
+                            <option value="ticket">門票</option>
+                            <option value="shopping">購物</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">名稱</label>
+                        <input v-model="formData.name" type="text" class="form-input" placeholder="輸入花費名稱">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">日期</label>
+                        <input v-model="formData.date" type="date" class="form-input">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">金額 (JPY)</label>
+                        <input v-model.number="formData.amount" type="number" class="form-input" placeholder="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">付款方式</label>
+                        <select v-model="formData.paymentMethod" class="form-select">
+                            <option value="cash">現金</option>
+                            <option value="creditcard">信用卡</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">備註</label>
+                        <textarea v-model="formData.notes" class="form-textarea" placeholder="輸入備註"></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" @click="saveItem">保存</button>
+
+                    <div v-if="editingItem">
+                        <button class="btn btn-danger" @click="confirmDelete">確認刪除</button>
+                        <button class="btn btn-secondary" @click="closeModal">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 複製提示 -->
+        <div v-if="showCopyToast" class="copy-toast">
+            已複製到剪貼簿 ✓
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    currentTab: 'itinerary',
+                    selectedDate: 'day1',
+                    selectedCategory: '',
+                    showModal: false,
+                    modalType: '',
+                    editingItem: null,
+                    editingIndex: -1,
+                    showCopyToast: false,
+                    exchangeInput: 0,
+                    exchangeRate: 0.2, // 1 JPY = 0.2 TWD 左右 (請根據當日實際匯率調整)
+                    draggedIndex: -1,
+
+                    // 日期列表
+                    dates: [
+                        { id: 'day1', week: 'Wed', day: '17' },
+                        { id: 'day2', week: 'Thu', day: '18' },
+                        { id: 'day3', week: 'Fri', day: '19' },
+                        { id: 'day4', week: 'Sat', day: '20' },
+                        { id: 'day5', week: 'Sun', day: '21' },
+                        { id: 'day6', week: 'Mon', day: '22' }
+                    ],
+
+                    // 航班資訊
+                    flightInfo: {
+                        outbound: [
+                            {
+                                id: 1,
+                                departure: '台北桃園機場',
+                                departureShort: 'TPE',
+                                arrival: '札幌新千歲機場',
+                                arrivalShort: 'CTS',
+                                departureTime: '06:20',
+                                arrivalTime: '10:55',
+                                duration: '約4小時35分',
+                                flightNumber: '虎航 SL392'
+                            },
+                            {
+                                id: 2,
+                                departure: '高雄小港機場',
+                                departureShort: 'KHH',
+                                arrival: '札幌新千歲機場',
+                                arrivalShort: 'CTS',
+                                departureTime: '11:05',
+                                arrivalTime: '16:00',
+                                duration: '約3小時55分',
+                                flightNumber: '泰獅航 SL392'
+                            }
+                        ],
+                        return: [
+                            {
+                                id: 3,
+                                departure: '札幌新千歲機場',
+                                departureShort: 'CTS',
+                                arrival: '高雄小港機場',
+                                arrivalShort: 'KHH',
+                                departureTime: '17:00',
+                                arrivalTime: '20:55',
+                                duration: '約3小時55分',
+                                flightNumber: '泰獅航 SL393'
+                            },
+                            {
+                                id: 4,
+                                departure: '札幌新千歲機場',
+                                departureShort: 'CTS',
+                                arrival: '台北桃園機場',
+                                arrivalShort: 'TPE',
+                                departureTime: '11:55',
+                                arrivalTime: '15:35',
+                                duration: '約4小時40分',
+                                flightNumber: '虎航 SL393'
+                            }
+                        ]
+                    },
+
+                    // 行程數據
+                    itineraryData: {
+                        day1: [
+                            { id: 1, category: 'other', name: '台北人機場集合', time: '03:20', hours: '', ticket: '', notes: '虎航報到，起飛前3小時', transit: 'walk', transitTime: '2小時' },
+                            { id: 2, category: 'flight', name: '虎航起飛', time: '06:20', hours: '', ticket: '', notes: '台北-札幌', transit: 'transit', transitTime: '2小時' },
+                            { id: 3, category: 'other', name: '高雄人機場集合', time: '08:55', hours: '', ticket: '', notes: '泰獅航報到，起飛前3小時', transit: 'transit', transitTime: '' },
+                            { id: 4, category: 'flight', name: '泰獅航起飛', time: '11:05', hours: '', ticket: '', notes: '高雄-札幌', transit: 'transit', transitTime: '' },
+                            { id: 5, category: 'transportation', name: '機場接機', time: '18:00', hours: '', ticket: '', notes: '統一接車點', transit: 'car', transitTime: '50分鐘' },
+                            { id: 6, category: 'accommodation', name: '抵達住宿點', time: '18:50', hours: '', ticket: '', notes: '札幌豐平區 Airbnb 包棟', transit: 'walk', transitTime: '10分鐘' },
+                            { id: 7, category: 'shopping', name: '住宿周邊超市採買', time: '19:00', hours: '10:00-23:00', ticket: '', notes: '購買隔天早餐食材及日用品', transit: 'walk', transitTime: '10分鐘' },
+                            { id: 8, category: 'other', name: '睡覺', time: '23:00', hours: '', ticket: '', notes: '隔天要早起參加滑雪課程', transit: '', transitTime: '' }
+                        ],
+                        day2: [
+                            { id: 9, category: 'other', name: '起床 + 早餐', time: '07:00', hours: '', ticket: '', notes: '前一日超市購物時購入', transit: 'walk', transitTime: '1小時' },
+                            { id: 10, category: 'transportation', name: '教練接送專車', time: '08:00', hours: '', ticket: '', notes: '住宿點至手稻滑雪場', transit: 'car', transitTime: '1小時' },
+                            { id: 11, category: 'attraction', name: '滑雪課程', time: '09:00', hours: '09:00-15:00', ticket: '', notes: '雙板3人/單板6人/自由1人', transit: 'transit', transitTime: '30分鐘' },
+                            { id: 12, category: 'food', name: '溫泉地放鬆吃飯泡湯', time: '16:00', hours: '16:00-19:00', ticket: '', notes: '教練車接送到溫泉地', transit: 'transit', transitTime: '1小時15分' },
+                            { id: 13, category: 'transportation', name: '回程', time: '19:15', hours: '', ticket: '', notes: '計程車→車站轉車', transit: 'transit', transitTime: '50分鐘' },
+                            { id: 14, category: 'accommodation', name: '抵達住宿點', time: '20:10', hours: '', ticket: '', notes: '', transit: '', transitTime: '' }
+                        ],
+                        day3: [
+                            { id: 15, category: 'attraction', name: '彈性滑雪 (滑雪組)', time: '07:00', hours: '', ticket: '', notes: '郁雯/庭銘7點出發，或自行安排出發時間', transit: 'car', transitTime: '' },
+                            { id: 16, category: 'shopping', name: '貍小路/市區逛街 (觀光組)', time: '09:00', hours: '', ticket: '', notes: '自行前往札幌市區逛街', transit: 'transit', transitTime: '' }
+                        ],
+                        day4: [
+                            { id: 17, category: 'attraction', name: '滑雪 (滑雪組)', time: '07:00', hours: '', ticket: '', notes: '郁雯/庭銘7點出發，或自行安排出發時間', transit: 'car', transitTime: '' },
+                            { id: 18, category: 'attraction', name: '自行安排觀光 (觀光組)', time: '08:00', hours: '', ticket: '', notes: '', transit: 'transit', transitTime: '' }
+                        ],
+                        day5: [
+                            { id: 19, category: 'attraction', name: '小樽組', time: '08:00', hours: '', ticket: '', notes: '怡慧、瑋銘、少廷、承哲', transit: 'car', transitTime: '' },
+                            { id: 20, category: 'attraction', name: '登別洞爺湖組', time: '08:00', hours: '', ticket: '', notes: '郁雯、庭銘、柏偉、令宇、阿維、美玲。各自組別討論行程', transit: 'car', transitTime: '' }
+                        ],
+                        day6: [
+                            { id: 21, category: 'other', name: '退房', time: '11:00', hours: '', ticket: '', notes: '', transit: 'car', transitTime: '15分鐘' },
+                            { id: 22, category: 'shopping', name: '機場購物', time: '12:00', hours: '', ticket: '', notes: '6人搭乘包車前往機場', transit: 'car', transitTime: '3小時' },
+                            { id: 23, category: 'flight', name: '辦理報到手續', time: '15:00', hours: '', ticket: '', notes: '', transit: 'walk', transitTime: '2小時' },
+                            { id: 24, category: 'flight', name: '泰獅航飛機起飛', time: '17:00', hours: '', ticket: '', notes: '札幌-高雄', transit: 'transit', transitTime: '' },
+                            { id: 25, category: 'flight', name: '抵達高雄小港機場', time: '20:55', hours: '', ticket: '', notes: '旅程結束', transit: '', transitTime: '' }
+                        ]
+                    },
+
+                    // 購物清單
+                    shoppingList: [],
+
+                    // 花費列表
+                    expenses: [],
+
+                    // 分帳系統
+                    splits: [
+                        {
+                            id: 1,
+                            date: '12/17',
+                            people: 10,
+                            description: '去程包車接送費用',
+                            amount: 70000,
+                            currency: 'JPY'
+                        },
+                        {
+                            id: 2,
+                            date: '12/18',
+                            people: 3,
+                            description: '雙板滑雪教練課',
+                            amount: 70000,
+                            currency: 'JPY'
+                        },
+                        {
+                            id: 3,
+                            date: '12/18',
+                            people: 6,
+                            description: '單板滑雪教練課',
+                            amount: 80000,
+                            currency: 'JPY'
+                        },
+                        {
+                            id: 4,
+                            date: '12/18',
+                            people: 10,
+                            description: '市區至滑雪場接送費用',
+                            amount: 40000,
+                            currency: 'JPY'
+                        },
+                        {
+                            id: 5,
+                            date: '12/21',
+                            people: 6,
+                            description: '一日包車行程 (小樽/登別洞爺湖，各組分開結帳)',
+                            amount: 60000,
+                            currency: 'NTD'
+                        },
+                        {
+                            id: 6,
+                            date: '12/22',
+                            people: 6,
+                            description: '回程包車接送費用',
+                            amount: 40000,
+                            currency: 'JPY'
+                        }
+                    ],
+
+                    // 天氣數據
+                    weatherData: {
+                        day1: { icon: '⛅', temp: 2, feelsLike: -2, suggestion: '適合外出，但務必穿著保暖', clothingSuggestion: '厚外套、手套、帽子、圍巾' },
+                        day2: { icon: '❄️', temp: 0, feelsLike: -3, suggestion: '下雪天氣，適合滑雪', clothingSuggestion: '滑雪服、厚手套、滑雪襪、保暖靴' },
+                        day3: { icon: '☁️', temp: 1, feelsLike: -1, suggestion: '多雲偶有陽光', clothingSuggestion: '厚外套、手套、帽子' },
+                        day4: { icon: '⛅', temp: 3, feelsLike: 0, suggestion: '多雲天氣，適合出遊', clothingSuggestion: '厚外套、手套' },
+                        day5: { icon: '☀️', temp: 4, feelsLike: 1, suggestion: '晴天但仍需保暖', clothingSuggestion: '厚外套、墨鏡、防曬乳' },
+                        day6: { icon: '☁️', temp: 2, feelsLike: -1, suggestion: '多雲，適合機場活動', clothingSuggestion: '厚外套、手套' }
+                    },
+
+                    // 表單數據
+                    formData: {
+                        category: 'attraction',
+                        name: '',
+                        time: '',
+                        hours: '',
+                        ticket: '',
+                        notes: '',
+                        transit: 'walk',
+                        transitTime: '',
+                        image: '',
+                        date: new Date().toISOString().split('T')[0],
+                        amount: 0,
+                        paymentMethod: 'cash'
+                    }
+                };
+            },
+
+            computed: {
+                filteredItinerary() {
+                    const dayData = this.itineraryData[this.selectedDate] || [];
+                    if (!this.selectedCategory) {
+                        return dayData;
+                    }
+                    return dayData.filter(item => item.category === this.selectedCategory);
+                },
+
+                currentDayWeather() {
+                    return this.weatherData[this.selectedDate];
+                },
+
+                totalExpense() {
+                    return this.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                }
+            },
+
+            methods: {
+                getCategoryIcon(category) {
+                    const icons = {
+                        'attraction': '🎯',
+                        'accommodation': '🏨',
+                        'food': '🍽️',
+                        'shopping': '🛍️',
+                        'flight': '✈️',
+                        'transportation': '🚗',
+                        'other': '📌'
+                    };
+                    return icons[category] || '📌';
+                },
+
+                getTransitIcon(transit) {
+                    const icons = {
+                        'walk': '🚶',
+                        'car': '🚗',
+                        'transit': '🚌'
+                    };
+                    return icons[transit] || '🚗';
+                },
+
+                openAddModal(type) {
+                    this.modalType = type;
+                    this.editingItem = null;
+                    this.editingIndex = -1;
+                    this.resetForm();
+                    this.showModal = true;
+                },
+
+                editItem(item) {
+                    this.editingItem = item;
+                    this.modalType = this.getModalType(item);
+
+                    if (this.modalType === 'itinerary') {
+                        const dayData = this.itineraryData[this.selectedDate];
+                        this.editingIndex = dayData.findIndex(i => i.id === item.id);
+                        this.formData = { ...item };
+                    } else if (this.modalType === 'shopping') {
+                        this.editingIndex = this.shoppingList.findIndex(i => i.id === item.id);
+                        this.formData = { name: item.name, image: item.image };
+                    } else if (this.modalType === 'expense') {
+                        this.editingIndex = this.expenses.findIndex(i => i.id === item.id);
+                        this.formData = { ...item };
+                    }
+
+                    this.showModal = true;
+                },
+
+                getModalType(item) {
+                    if (item.category === undefined) return 'expense';
+                    if (item.image !== undefined) return 'shopping';
+                    return 'itinerary';
+                },
+
+                resetForm() {
+                    this.formData = {
+                        category: 'attraction',
+                        name: '',
+                        time: '',
+                        hours: '',
+                        ticket: '',
+                        notes: '',
+                        transit: 'walk',
+                        transitTime: '',
+                        image: '',
+                        date: new Date().toISOString().split('T')[0],
+                        amount: 0,
+                        paymentMethod: 'cash'
+                    };
+                },
+
+                saveItem() {
+                    if (this.modalType === 'itinerary') {
+                        this.saveItinerary();
+                    } else if (this.modalType === 'shopping') {
+                        this.saveShopping();
+                    } else if (this.modalType === 'expense') {
+                        this.saveExpense();
+                    }
+
+                    this.closeModal();
+                },
+
+                saveItinerary() {
+                    const dayData = this.itineraryData[this.selectedDate];
+                    if (this.editingItem) {
+                        Object.assign(this.editingItem, this.formData);
+                    } else {
+                        const newId = Math.max(...dayData.map(i => i.id), 0) + 1;
+                        dayData.push({ id: newId, ...this.formData });
+                    }
+                },
+
+                saveShopping() {
+                    if (this.editingItem) {
+                        this.editingItem.name = this.formData.name;
+                        if (this.formData.image) {
+                            this.editingItem.image = this.formData.image;
+                        }
+                    } else {
+                        const newId = Math.max(...this.shoppingList.map(i => i.id), 0) + 1;
+                        this.shoppingList.push({
+                            id: newId,
+                            name: this.formData.name,
+                            image: this.formData.image || ''
+                        });
+                    }
+                },
+
+                saveExpense() {
+                    if (this.editingItem) {
+                        Object.assign(this.editingItem, this.formData);
+                    } else {
+                        const newId = Math.max(...this.expenses.map(i => i.id), 0) + 1;
+                        this.expenses.push({ id: newId, ...this.formData });
+                    }
+                },
+
+                deleteItem(itemId) {
+                    if (this.modalType === 'itinerary') {
+                        const dayData = this.itineraryData[this.selectedDate];
+                        const index = dayData.findIndex(i => i.id === itemId);
+                        if (index > -1) dayData.splice(index, 1);
+                    } else if (this.modalType === 'shopping') {
+                        const index = this.shoppingList.findIndex(i => i.id === itemId);
+                        if (index > -1) this.shoppingList.splice(index, 1);
+                    } else if (this.modalType === 'expense') {
+                        const index = this.expenses.findIndex(i => i.id === itemId);
+                        if (index > -1) this.expenses.splice(index, 1);
+                    }
+                },
+
+                confirmDelete() {
+                    if (confirm('確定要刪除嗎？')) {
+                        this.deleteItem(this.editingItem.id);
+                        this.closeModal();
+                    }
+                },
+
+                closeModal() {
+                    this.showModal = false;
+                    this.editingItem = null;
+                    this.editingIndex = -1;
+                    this.resetForm();
+                },
+
+                handleImageUpload(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.formData.image = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                },
+
+                copyToClipboard(item) {
+                    const text = `${item.name} - ${item.time}${item.notes ? ' - ' + item.notes : ''}`;
+                    navigator.clipboard.writeText(text);
+                    this.showCopyToast = true;
+                    setTimeout(() => {
+                        this.showCopyToast = false;
+                    }, 2000);
+                },
+
+                dragStart(event, index) {
+                    this.draggedIndex = index;
+                },
+
+                dragDrop(event, index) {
+                    event.preventDefault();
+                    if (this.draggedIndex !== -1 && this.draggedIndex !== index) {
+                        const dayData = this.itineraryData[this.selectedDate];
+                        const draggedItem = dayData[this.draggedIndex];
+                        dayData.splice(this.draggedIndex, 1);
+                        dayData.splice(index, 0, draggedItem);
+                    }
+                },
+
+                dragEnd() {
+                    this.draggedIndex = -1;
+                }
+            },
+
+            mounted() {
+                // 添加長按事件監聽
+                document.addEventListener('contextmenu', (e) => {
+                    const card = e.target.closest('.itinerary-card');
+                    if (card) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
