@@ -1456,15 +1456,55 @@
                         }
                     ],
 
-                    // 天氣數據
-                    weatherData: {
-                        day1: { icon: '⛅', temp: 2, feelsLike: -2, suggestion: '適合外出，但務必穿著保暖', clothingSuggestion: '厚外套、手套、帽子、圍巾' },
-                        day2: { icon: '❄️', temp: 0, feelsLike: -3, suggestion: '下雪天氣，適合滑雪', clothingSuggestion: '滑雪服、厚手套、滑雪襪、保暖靴' },
-                        day3: { icon: '☁️', temp: 1, feelsLike: -1, suggestion: '多雲偶有陽光', clothingSuggestion: '厚外套、手套、帽子' },
-                        day4: { icon: '⛅', temp: 3, feelsLike: 0, suggestion: '多雲天氣，適合出遊', clothingSuggestion: '厚外套、手套' },
-                        day5: { icon: '☀️', temp: 4, feelsLike: 1, suggestion: '晴天但仍需保暖', clothingSuggestion: '厚外套、墨鏡、防曬乳' },
-                        day6: { icon: '☁️', temp: 2, feelsLike: -1, suggestion: '多雲，適合機場活動', clothingSuggestion: '厚外套、手套' }
-                    },
+weatherData: {
+  day1: {
+    icon: '☁️',
+    temp: -2,
+    feelsLike: -6,
+    suggestion: '多雲低溫，適合輕鬆逛街或移動日，戶外時間不要太長',
+    clothingSuggestion: '厚羽絨外套、發熱衣、防風長褲、手套、帽子'
+  },
+
+  day2: {
+    icon: '☁️',
+    temp: -1,
+    feelsLike: -5,
+    suggestion: '持續多雲，路面已有積雪與結冰，走路要小心滑倒',
+    clothingSuggestion: '厚外套、防滑靴、手套、圍巾'
+  },
+
+  day3: {
+    icon: '🌨️',
+    temp: 4,
+    feelsLike: 0,      // ← 改這裡
+    suggestion: '高機率降雪或雨夾雪，適合滑雪，但能見度與雪質較濕重',
+    clothingSuggestion: '滑雪服、防水長褲、防水手套、護目鏡、保暖襪'
+  },
+
+  day4: {
+    icon: '🌧️',
+    temp: 8,
+    feelsLike: 5,
+    suggestion: '白天以下雨為主，雪道容易變成濕雪與爛雪，戶外活動請準備完整防水裝備',
+    clothingSuggestion: '防水外套、防水長褲、防水靴、備用襪子與毛巾'
+  },
+
+  day5: {
+    icon: '🌦️',
+    temp: 6,
+    feelsLike: 4,
+    suggestion: '持續多雲有雨，適合排室內行程或短時間滑雪後回住宿休息',
+    clothingSuggestion: '輕量羽絨＋防水外層、雨具、防水鞋'
+  },
+
+  day6: {
+    icon: '☁️',
+    temp: 0,
+    feelsLike: -2,     // ← 改這裡
+    suggestion: '轉回乾冷多雲天氣，雪況逐漸穩定，適合整理行李或市區活動',
+    clothingSuggestion: '厚外套、發熱衣、手套、毛帽'
+  }
+}
 
                     // 表單數據
                     formData: {
